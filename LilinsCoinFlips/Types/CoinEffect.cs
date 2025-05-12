@@ -130,8 +130,11 @@ namespace LilinsCoinFlips.Types
             //2
             new CoinFlipEffect(Translations.InstaGrenadeMessage, player =>
             {
+                float randomValue = UnityEngine.Random.Range(0.1f, 5f);
+
                 ExplosiveGrenade instaBoom = (ExplosiveGrenade) Item.Create(ItemType.GrenadeHE);
                 instaBoom.FuseTime = 0.1f;
+                instaBoom.MaxRadius = randomValue;
                 instaBoom.SpawnActive(player.Position, player);
             }),
 
@@ -318,34 +321,7 @@ namespace LilinsCoinFlips.Types
             //14
             new CoinFlipEffect("Jumpscare :3", player =>
             {
-                List<Player> playerList = Player.List.Where(x => x != player && !Config.JSIgnoredRoles.Contains(x.Role.Type)).ToList();
-
-                bool playAlternative = UnityEngine.Random.value > 0.5f;
-    
-                if (playAlternative)
-                {
-                    AudioPlayer audioPlayer = AudioPlayer.CreateOrGet($"Player {player.Nickname}", onIntialCreation: (p) =>
-                    {
-                        p.transform.parent = player.GameObject.transform;
-                        Speaker speaker = p.AddSpeaker("Main", isSpatial: true, minDistance: 1f, maxDistance: 15f);
-                        speaker.transform.parent = player.GameObject.transform;
-                        speaker.transform.localPosition = Vector3.zero;
-                    });
-                    audioPlayer.AddClip("js", 4);
-                }
-                else
-                {
-                    var target = playerList.Where(x => x != player).ToList().RandomItem();
-
-                    AudioPlayer audioPlayer = AudioPlayer.CreateOrGet($"Player {target.Nickname}", onIntialCreation: (p) =>
-                    {
-                        p.transform.parent = target.GameObject.transform;
-                        Speaker speaker = p.AddSpeaker("Main", isSpatial: true, minDistance: 1f, maxDistance: 15f);
-                        speaker.transform.parent = target.GameObject.transform;
-                        speaker.transform.localPosition = Vector3.zero;
-                    });
-                    audioPlayer.AddClip("js", 4);
-                }
+                
             }),
         };
     }

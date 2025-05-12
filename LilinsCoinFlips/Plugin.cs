@@ -23,7 +23,6 @@ namespace LilinsCoinFlips
         public override void OnEnabled()
         {
             Instance = this;
-            AudioClipStorage.LoadClip("C:\\Users\\Administrator\\AppData\\Roaming\\EXILED\\Audio\\js.ogg", "js");
             RegisterEvents();
             base.OnEnabled();
         }
@@ -39,15 +38,11 @@ namespace LilinsCoinFlips
         {
             _eventHandler = new EventHandlers();
             Player.FlippingCoin += _eventHandler.OnCoinFlip;
-            Map.SpawningItem += _eventHandler.OnSpawningItem;
-            Map.FillingLocker += _eventHandler.OnFillingLocker;
         }
 
         private void UnregisterEvents()
         {
             Player.FlippingCoin -= _eventHandler.OnCoinFlip;
-            Map.SpawningItem -= _eventHandler.OnSpawningItem;
-            Map.FillingLocker -= _eventHandler.OnFillingLocker;
             _eventHandler = null;
         }
     }

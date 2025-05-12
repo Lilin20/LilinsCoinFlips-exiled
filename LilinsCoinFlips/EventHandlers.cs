@@ -172,33 +172,5 @@ namespace LilinsCoinFlips
                 SendHint(ev.Player, message);
             }
         }
-
-        public void OnSpawningItem(SpawningItemEventArgs ev)
-        {
-            if (Config.DefaultCoinsAmount != 0 && ev.Pickup.Type == ItemType.Coin)
-            {
-                Log.Debug($"Removed a coin, coins left to remove {Config.DefaultCoinsAmount}");
-                ev.IsAllowed = false;
-                Config.DefaultCoinsAmount--;
-            }
-        }
-
-        public void OnFillingLocker(FillingLockerEventArgs ev)
-        {
-            if (ev.Pickup.Type == ItemType.Coin && Config.DefaultCoinsAmount != 0)
-            {
-                Log.Debug($"Removed a locker coin, coins left to remove {Config.DefaultCoinsAmount}");
-                ev.IsAllowed = false;
-                Config.DefaultCoinsAmount--;
-            }
-            else if (ev.Pickup.Type == Config.ItemToReplace.ElementAt(0).Key
-                && Config.ItemToReplace.ElementAt(0).Value != 0)
-            {
-                Log.Debug($"Placed a coin, coins left to place: {Config.ItemToReplace.ElementAt(0).Value}. Replaced item: {ev.Pickup.Type}");
-                ev.IsAllowed = false;
-                Pickup.CreateAndSpawn(ItemType.Coin, ev.Pickup.Position, new Quaternion());
-                Config.ItemToReplace[Config.ItemToReplace.ElementAt(0).Key]--;
-            }
-        }
     }
 }
