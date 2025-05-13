@@ -1,6 +1,6 @@
 # 🎲 Lilin's CoinFlip Plugin
 
-A customizable **coin flip effect system** for [EXILED](https://github.com/Exiled-Team/EXILED), letting you define good and bad outcomes via YAML config files — no recompilation required!
+A customizable **coin flip effect system** for EXILED beta (LabAPI), letting you define good and bad outcomes via YAML config files — no recompilation required!
 
 Exiled Version: 9.6.0-beta8
 
@@ -122,7 +122,7 @@ Applies one random status effect from a list.
       - "Bleeding"
 ```
 
-✅ Supported values: Any valid [`EffectType`](https://github.com/Exiled-Team/EXILED/blob/master/Exiled.API/Enums/EffectType.cs)
+✅ Supported values: Any valid EffectType
 
 ---
 
