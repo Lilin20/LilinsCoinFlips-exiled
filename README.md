@@ -148,4 +148,4 @@ MIT — free for personal or commercial use.
 
 ## ❤️ Credits
 
-Developed by **Lilin** using [EXILED](https://github.com/Exiled-Team/EXILED) and [YamlDotNet](https://github.com/aaubry/YamlDotNet).
+Developed by **Lilin** using EXILED and [YamlDotNet](https://github.com/aaubry/YamlDotNet).
