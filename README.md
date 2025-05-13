@@ -1,6 +1,6 @@
 # 🎲 Lilin's CoinFlip Plugin
 
-A customizable **coin flip effect system** for EXILED beta (LabAPI), letting you define good and bad outcomes via YAML config files — no recompilation required!
+A customizable **coin flip effect system** for EXILED beta, letting you define good and bad outcomes via YAML config files — no recompilation required!
 
 Exiled Version: 9.6.0-beta8
 
@@ -17,13 +17,18 @@ Exiled Version: 9.6.0-beta8
 
 ---
 
+## 🧾 Configuration
+First, copy the plugin inside your plugin folder and start the server to let the config file generate.
+Then, edit the config file and edit the 2 following lines (i addeded 2 pre-made files):
+
+```yaml
+...
+good_effects_path: 'your/path/to/good_effects.yaml'
+bad_effects_path: 'your/path/to/bad_effects.yaml'
+...
+```
+
 ## 📁 YAML Configuration
-
-### 🔧 Files
-You should place two files inside the plugin's config directory:
-
-- `good.yaml`: For positive outcomes (coin lands on heads)
-- `bad.yaml`: For negative outcomes (coin lands on tails)
 
 ### 🧾 Format Example
 
