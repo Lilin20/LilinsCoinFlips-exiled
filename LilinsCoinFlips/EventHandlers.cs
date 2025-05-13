@@ -5,6 +5,7 @@ using Exiled.API.Features;
 using Exiled.API.Features.Pickups;
 using Exiled.Events.EventArgs.Map;
 using Exiled.Events.EventArgs.Player;
+using LabApi.Events.Arguments.ServerEvents;
 using LilinsCoinFlips.Configs;
 using LilinsCoinFlips.Types;
 using UnityEngine;
@@ -16,43 +17,7 @@ namespace LilinsCoinFlips
         private static Config Config => Plugin.Instance.Config;
         private static Configs.Translations Translations => Plugin.Instance.Translation;
         private readonly System.Random _rd = new();
-
-
         public static Dictionary<ushort, int> CoinUses = new();
-
-
-
-        private readonly Dictionary<int, int> _goodEffectChances = new()
-        {
-            { 0, Config.MedkitChance },
-            { 1, Config.RandomEffectChance },
-            { 2, Config.SilentStepChance },
-            { 3, Config.KeyCardChance },
-            { 4, Config.EscapeTPChance },
-            { 5, Config.HealChance },
-            { 6, Config.MaxHPChance },
-            { 7, Config.RandomItemChance },
-            { 8, Config.RandomCustomItemChance },
-        };
-
-        private readonly Dictionary<int, int> _badEffectChances = new()
-        {
-            { 0, Config.ShitPantsChance },
-            { 1, Config.RandomRoomTPChance },
-            { 2, Config.InstaGrenadeChance },
-            { 3, Config.PlayerSwapChance },
-            { 4, Config.FentanylChance },
-            { 5, Config.RandomEffectChance },
-            { 6, Config.BouncyBallEffectChance },
-            { 7, Config.HpReductionChance },
-            { 8, Config.HugeDamageChance },
-            { 9, Config.PrimedVaseChance },
-            { 10, Config.FakeScpKillChance },
-            { 11, Config.InventoryResetChance },
-            { 12, Config.SpectSwapChance },
-            { 13, Config.InventorySwapChance },
-            { 14, Config.JSChance },
-        };
 
         private readonly Dictionary<string, DateTime> _cooldownDict = new();
 
@@ -67,10 +32,10 @@ namespace LilinsCoinFlips
 
             bool helper = false;
 
-            bool flag = _cooldownDict.ContainsKey(ev.Player.RawUserId)
+            bool onCd = _cooldownDict.ContainsKey(ev.Player.RawUserId)
                 && (DateTime.UtcNow - _cooldownDict[ev.Player.RawUserId]).TotalSeconds < Config.CoinCooldown;
 
-            if (flag)
+            if (onCd)
             {
                 ev.IsAllowed = false;
                 SendHint(ev.Player, Translations.TossOnCoodownMessage);
@@ -83,12 +48,12 @@ namespace LilinsCoinFlips
             if (!CoinUses.ContainsKey(ev.Player.CurrentItem.Serial))
             {
                 CoinUses.Add(ev.Player.CurrentItem.Serial, _rd.Next(Config.MinMaxDefaultCoins[0], Config.MinMaxDefaultCoins[1]));
-                Log.Debug($"Registered a coin, uses left: {CoinUses[ev.Player.CurrentItem.Serial]}");
+                Log.Debug($"Coin registered. Uses left: {CoinUses[ev.Player.CurrentItem.Serial]}");
 
                 if (CoinUses[ev.Player.CurrentItem.Serial] < 1)
                 {
                     CoinUses.Remove(ev.Player.CurrentItem.Serial);
-                    Log.Debug("Removed a coin.");
+                    Log.Debug("Coin was removed due to throw limit.");
                     if (ev.Player.CurrentItem != null)
                     {
                         ev.Player.RemoveHeldItem();
@@ -110,52 +75,24 @@ namespace LilinsCoinFlips
 
             if (!ev.IsTails)
             {
-                int totalChance = _goodEffectChances.Values.Sum();
+                int totalChance = EffectLoader.GoodEffects.Sum(effect => effect.Chance);
                 int randomNum = _rd.Next(1, totalChance + 1);
 
-                int headsEvent = 2;
+                var selectedEffect = EffectLoader.GoodEffects.FirstOrDefault(effect => (randomNum -= effect.Chance) <= 0);
 
-                foreach (KeyValuePair<int, int> kvp in _goodEffectChances)
-                {
-                    if (randomNum <= kvp.Value)
-                    {
-                        headsEvent = kvp.Key;
-                        break;
-                    }
-
-                    randomNum -= kvp.Value;
-                }
-
-                Log.Debug($"headsEvent = {headsEvent}");
-
-                var effect = CoinFlipEffect.GoodEffects[headsEvent];
-                effect.Execute(ev.Player);
-                message = effect.Message;
+                selectedEffect?.Execute(ev.Player);
+                message = selectedEffect?.Message;
             }
 
             if (ev.IsTails)
             {
-                int totalChance = _badEffectChances.Values.Sum();
-                int randomNum = _rd.Next(2, totalChance + 1);
+                int totalChance = EffectLoader.BadEffects.Sum(effect => effect.Chance);
+                int randomNum = _rd.Next(1, totalChance + 1);
 
-                int tailsEvent = 13;
+                var selectedEffect = EffectLoader.BadEffects.FirstOrDefault(effect => (randomNum -= effect.Chance) <= 0);
 
-                foreach (KeyValuePair<int, int> kvp in _badEffectChances)
-                {
-                    if (randomNum <= kvp.Value)
-                    {
-                        tailsEvent = kvp.Key;
-                        break;
-                    }
-
-                    randomNum -= kvp.Value;
-                }
-
-                Log.Debug($"tailsEvent = {tailsEvent}");
-
-                var effect = CoinFlipEffect.BadEffects[tailsEvent];
-                effect.Execute(ev.Player);
-                message = effect.Message;
+                selectedEffect?.Execute(ev.Player);
+                message = selectedEffect?.Message;
             }
 
             if (helper)

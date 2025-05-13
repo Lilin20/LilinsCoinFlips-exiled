@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
@@ -14,315 +15,198 @@ using LilinsCoinFlips.Configs;
 using PlayerRoles;
 using RemoteAdmin.Communication;
 using UnityEngine;
+using Utf8Json.Internal;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace LilinsCoinFlips.Types
 {
     public class CoinFlipEffect
     {
-        private static Config Config => Plugin.Instance.Config;
-        private static Configs.Translations Translations => Plugin.Instance.Translation;
-        private static readonly System.Random Rd = new();
-
         public Action<Player> Execute { get; set; }
         public string Message { get; set; }
+        public int Chance { get; set; }
 
-        public CoinFlipEffect(string message, Action<Player> execute)
+        public CoinFlipEffect(string message, Action<Player> execute, int chance)
         {
             Execute = execute;
             Message = message;
+            Chance = chance;
         }
 
-        private static readonly Dictionary<string, string> _scpNames = new()
+        public static Action<Player> GetActionFromName(string actionName, Dictionary<string, object> parameters)
         {
-            { "1 7 3", "SCP-173"},
-            { "9 3 9", "SCP-939"},
-            { "0 9 6", "SCP-096"},
-            { "0 7 9", "SCP-079"},
-            { "0 4 9", "SCP-049"},
-            { "1 0 6", "SCP-106"}
-        };
+            Log.Debug($"GetActionFromName called with actionName: {actionName}");
 
-        private static bool flag1 = Config.RedCardChance > Rd.Next(1, 101);
-
-        public static List<CoinFlipEffect> GoodEffects = new()
-        {
-            //0
-            new CoinFlipEffect(Translations.MedikitMessage, player =>
+            return actionName switch
             {
-                Pickup.CreateAndSpawn(ItemType.Medkit, player.Position, new UnityEngine.Quaternion());
-                Pickup.CreateAndSpawn(ItemType.Painkillers, player.Position, new UnityEngine.Quaternion());
-            }),
-
-            //1
-            new CoinFlipEffect(Translations.RandomGoodEffectMessage, player =>
-            {
-                var effect = Config.GoodEffects.ToList().RandomItem();
-                player.EnableEffect(effect, 5, true);
-                Log.Debug($"Chosen random effect: {effect}");
-            }),
-
-            //2
-            new CoinFlipEffect(Translations.SiletStepMessage, player =>
-            {
-                player.EnableEffect(Exiled.API.Enums.EffectType.SilentWalk, 255, 20f, false);
-            }),
-
-            //3
-            new CoinFlipEffect(flag1 ? Translations.RedCardMessage : Translations.ContainmentEngineerCardMessage, player =>
-            {
-                Pickup.CreateAndSpawn(flag1 ? ItemType.KeycardFacilityManager : ItemType.KeycardContainmentEngineer, player.Position, new Quaternion());
-            }),
-
-            //4
-            new CoinFlipEffect(Translations.TpToEscapeMessage, player =>
-            {
-                player.Teleport(Door.Get(DoorType.EscapePrimary));
-            }),
-
-            //5
-            new CoinFlipEffect(Translations.MagicHealMessage, player =>
-            {
-                player.Heal(25);
-            }),
-
-            //6
-            new CoinFlipEffect(Translations.HealthIncreaseMessage, player =>
-            {
-                player.Health *= 1.1f;
-            }),
-
-            //7
-            new CoinFlipEffect(Translations.RandomItemMessage, player =>
-            {
-                Item.Create(Config.ItemsToGive.ToList().RandomItem()).CreatePickup(player.Position);
-            }),
-
-            //8
-            new CoinFlipEffect(Translations.RandomCustomItemMessage, player =>
-            {
-                CustomItem.Get(Config.CustomItemIDs.GetRandomValue()).Spawn(player);
-            }),
-        };
-
-        public static List<CoinFlipEffect> BadEffects = new()
-        {
-            //0
-            new CoinFlipEffect(Translations.ShitPantsMessage, player =>
-            {
-                player.PlaceTantrum();
-            }),
-
-            //1
-            new CoinFlipEffect(Translations.RandomRoomTPMessage, player =>
-            {
-                if (Warhead.IsDetonated)
+                "SpawnItems" => player =>
                 {
-                    Scp330 candy = (Scp330) Item.Create(ItemType.SCP330);
-                    candy.AddCandy(InventorySystem.Items.Usables.Scp330.CandyKindID.Red);
-                    candy.CreatePickup(player.Position);
-                    return;
-                }
-                Room room = Room.Get(Config.RoomsToTeleport.GetRandomValue());
-                Log.Debug($"Chosen room: {room.name}");
-                player.Teleport(room);
-            }),
+                    Log.Debug("Handling 'SpawnItems' action...");
 
-            //2
-            new CoinFlipEffect(Translations.InstaGrenadeMessage, player =>
-            {
-                float randomValue = UnityEngine.Random.Range(0.1f, 5f);
+                    if (parameters.TryGetValue("items", out var items) && items is IEnumerable<object> rawList)
+                    {
+                        Log.Debug($"Found 'items' parameter with {rawList.Count()} items.");
 
-                ExplosiveGrenade instaBoom = (ExplosiveGrenade) Item.Create(ItemType.GrenadeHE);
-                instaBoom.FuseTime = 0.1f;
-                instaBoom.MaxRadius = randomValue;
-                instaBoom.SpawnActive(player.Position, player);
-            }),
+                        foreach (var itemObj in rawList)
+                        {
+                            var itemStr = itemObj.ToString();
+                            Log.Debug($"Attempting to spawn item: {itemStr}");
 
-            //3
-            new CoinFlipEffect(Player.List.Count(x => x.IsAlive && !Config.PlayerSwapIgnoredRoles.Contains(x.Role.Type)) == 1 ? Translations.PlayerSwapMessage : Translations.PlayerSwapMessage, player =>
-            {
-                var playerList = Player.List.Where(x => x.IsAlive && !Config.PlayerSwapIgnoredRoles.Contains(x.Role.Type)).ToList();
-                playerList.Remove(player);
-                
-                if (playerList.IsEmpty())
+                            Log.Debug($"Player details: {player.ToString()}");
+
+                            if (Enum.TryParse<ItemType>(itemStr, out var itemEnum))
+                            {
+                                Log.Debug($"Successfully parsed ItemType: {itemEnum}");
+                                Pickup.CreateAndSpawn(itemEnum, player.Position, UnityEngine.Quaternion.identity);
+                                Log.Debug($"Spawned {itemEnum} at {player.Position}");
+                            }
+                            else
+                            {
+                                Log.Debug($"Invalid ItemType: {itemStr}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Log.Debug("'Items' parameter not found or invalid format.");
+                    }
+                },
+                "SpawnCustomItems" => player =>
                 {
-                    return;
-                }
+                    Log.Debug("Handling 'SpawnCustomItems' action...");
 
-                var targetPlayer = playerList.RandomItem();
-                var pos = targetPlayer.Position;
-                
-                targetPlayer.Teleport(player.Position);
-                player.Teleport(pos);
-                
-                EventHandlers.SendHint(targetPlayer, Translations.PlayerSwapMessage);
-            }),
-            
-            //4
-            new CoinFlipEffect(Translations.FentanylMessage, player =>
-            {
-                CustomItem.Get(100).Spawn(player);
-            }),
+                    if (parameters.TryGetValue("items", out var items) && items is IEnumerable<object> rawList)
+                    {
+                        Log.Debug($"Found 'customitems' parameter with {rawList.Count()} items.");
 
-            //5
-            new CoinFlipEffect(Translations.RandomBadEffectMessage, player =>
-            {
-                var effect = Config.BadEffects.ToList().RandomItem();
-                
-                //prevents players from staying in PD infinitely
-                if (effect == EffectType.PocketCorroding)
-                    player.EnableEffect(EffectType.PocketCorroding);
-                else
-                    player.EnableEffect(effect, 5, true);
+                        foreach (var itemObj in rawList)
+                        {
+                            var itemStr = itemObj.ToString();
+                            Log.Debug($"Attempting to spawn item: {itemStr}");
 
-                Log.Debug($"Chosen random effect: {effect}");
-            }),
+                            Log.Debug($"Player details: {player.ToString()}");
 
-            //6
-            new CoinFlipEffect(Translations.BouncyBallMessage, player =>
-            {
-                int randomNumber = Rd.Next(3, 6);
-
-                for (int i = 0; i < randomNumber; i++)
+                            if (Enum.TryParse<ItemType>(itemStr, out var itemEnum))
+                            {
+                                Log.Debug($"Successfully parsed CustomItem: {itemEnum}");
+                                CustomItem.TrySpawn(itemStr, player.Position, out Pickup pickup);
+                                Log.Debug($"Spawned {itemEnum} at {player.Position}");
+                            }
+                            else
+                            {
+                                Log.Debug($"Invalid CustomItem: {itemStr}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Log.Debug("'customitems' parameter not found or invalid format.");
+                    }
+                },
+                "TeleportToRoom" => player =>
                 {
-                    Scp018Projectile test = (Scp018Projectile) Projectile.Create(ItemType.SCP018);
-                    test.Spawn(player.Position + Vector3.up);
-                    test.Activate();
-                }
-            }),
+                    Log.Debug("Handling 'TeleportToRoom' action...");
 
-            //7
-            new CoinFlipEffect(Translations.HpReductionMessage, player =>
-            {
-                if ((int) player.Health == 1)
-                    player.Kill(DamageType.CardiacArrest);
-                else
-                    player.Health *= 0.7f;
-            }),
-
-            //8
-            new CoinFlipEffect(Translations.HugeDamageMessage, player =>
-            {
-                if ((int) player.Health == 1)
-                    player.Kill(DamageType.CardiacArrest);
-                else
-                    player.Health = 1;
-            }),
-
-            //9
-            new CoinFlipEffect(Translations.PrimedVaseMessage, player =>
-            {
-                Scp244 vase = (Scp244)Item.Create(ItemType.SCP244a);
-                vase.Primed = true;
-                vase.CreatePickup(player.Position);
-            }),
-
-            //10
-            new CoinFlipEffect(Translations.FakeScpKillMessage, player =>
-            {
-                var scpName = _scpNames.ToList().RandomItem();
-
-                Cassie.MessageTranslated($"scp {scpName.Key} successfully terminated by automatic security system",
-                    $"{scpName.Value} successfully terminated by Automatic Security System.");
-            }),
-
-            //11
-            new CoinFlipEffect(Translations.InventoryResetMessage, player =>
-            {
-                player.DropHeldItem();
-                player.ClearInventory();
-            }),
-
-            //12
-            new CoinFlipEffect(Player.List.Where(x => x.Role.Type == RoleTypeId.Spectator).IsEmpty() ? Translations.SpectSwapNoSpectsMessage : Translations.SpectSwapPlayerMessage, player =>
-            {
-                var spectList = Player.List.Where(x => x.Role.Type == RoleTypeId.Spectator).ToList();
-
-                if (spectList.IsEmpty())
+                    if (parameters.TryGetValue("room", out var location) && location is string loc)
+                    {
+                        Log.Debug($"Teleporting player to location: {loc}");
+                        player.Teleport(Room.Get((RoomType)Enum.Parse(typeof(RoomType), loc)));
+                        Log.Debug("Player teleported.");
+                    }
+                    else
+                    {
+                        Log.Debug("'Location' parameter not found or invalid format.");
+                    }
+                },
+                "TeleportRandom" => player =>
                 {
-                    return;
-                }
+                    Log.Debug("Handling 'TeleportRandom' action...");
 
-                var spect = spectList.RandomItem();
+                    if (parameters.TryGetValue("possiblerooms", out var roomListRaw) && roomListRaw is IEnumerable<object> roomList)
+                    {
+                        var random = new System.Random();
+                        var roomArray = roomList.ToArray();
 
-                spect.Role.Set(player.Role.Type, RoleSpawnFlags.None);
-                spect.Teleport(player);
-                spect.Health = player.Health;
+                        if (roomArray.Length == 0)
+                        {
+                            Log.Debug("Room list is empty.");
+                            return;
+                        }
 
-                List<ItemType> playerItems = player.Items.Select(item => item.Type).ToList();
+                        var randomRoom = roomArray[random.Next(roomArray.Length)];
 
-                foreach (var item in playerItems)
+                        if (randomRoom != null)
+                        {
+                            var roomStr = randomRoom.ToString();
+                            Log.Debug($"Selected random room string: {roomStr}");
+
+                            if (Enum.TryParse<RoomType>(roomStr, out var roomType))
+                            {
+                                var targetRoom = Room.Get(roomType);
+                                if (targetRoom != null)
+                                {
+                                    player.Teleport(targetRoom);
+                                    Log.Debug($"Player {player.Nickname} teleported to room: {roomType}");
+                                }
+                                else
+                                {
+                                    Log.Debug($"RoomType {roomType} resolved, but Room.Get returned null.");
+                                }
+                            }
+                            else
+                            {
+                                Log.Debug($"Invalid RoomType string: {roomStr}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Log.Debug("'rooms' parameter not found or invalid format.");
+                    }
+                },
+                "RandomEffect" => player =>
                 {
-                    spect.AddItem(item);
-                }
-                
-                
-                //give spect the players ammo, has to be done before ClearInventory() or else ammo will fall on the floor
-                for (int i = 0; i < player.Ammo.Count; i++)
-                {
-                    spect.AddAmmo(player.Ammo.ElementAt(i).Key.GetAmmoType(), player.Ammo.ElementAt(i).Value);
-                    player.SetAmmo(player.Ammo.ElementAt(i).Key.GetAmmoType(), 0);
-                }
+                    Log.Debug("Handling 'RandomEffect' action...");
 
-                player.ClearInventory();
-                player.Role.Set(RoleTypeId.Spectator);
+                    if (parameters.TryGetValue("effects", out var effects) && effects is IEnumerable<object> effectList)
+                    {
+                        Log.Debug($"Found 'effects' parameter with {effectList.Count()} items.");
 
-                EventHandlers.SendHint(spect, Translations.SpectSwapSpectMessage);
-            }),
+                        // Zufälligen Effekt aus der Liste auswählen
+                        var random = new System.Random();
+                        var randomEffect = effectList.ElementAtOrDefault(random.Next(effectList.Count()));
 
-            //13
-            new CoinFlipEffect(Player.List.Where(x => !Config.InventorySwapIgnoredRoles.Contains(x.Role.Type)).Count(x => x.IsAlive) <= 1 ? Translations.InventorySwapOnePlayerMessage : Translations.InventorySwapMessage, player =>
-            {
-                List<Player> playerList = Player.List.Where(x => x != player && !Config.InventorySwapIgnoredRoles.Contains(x.Role.Type)).ToList();
+                        if (randomEffect != null)
+                        {
+                            var effectStr = randomEffect.ToString();
+                            Log.Debug($"Attempting to apply effect: {effectStr}");
 
-                if (playerList.Count(x => x.IsAlive) <= 1)
-                {
-                    player.Hurt(50);
-                    return;
-                }
+                            Log.Debug($"Player details: {player.ToString()}");
 
-                var target = playerList.Where(x => x != player).ToList().RandomItem();
-
-                // Saving items
-                List<ItemType> items1 = player.Items.Select(item => item.Type).ToList();
-                List<ItemType> items2 = target.Items.Select(item => item.Type).ToList();
-
-                // Saving and removing ammo
-                Dictionary<AmmoType, ushort> ammo1 = new();
-                Dictionary<AmmoType, ushort> ammo2 = new();
-                for (int i = 0; i < player.Ammo.Count; i++)
-                {
-                    ammo1.Add(player.Ammo.ElementAt(i).Key.GetAmmoType(), player.Ammo.ElementAt(i).Value);
-                    player.SetAmmo(ammo1.ElementAt(i).Key, 0);
-                }
-                for (int i = 0; i < target.Ammo.Count; i++)
-                {
-                    ammo2.Add(target.Ammo.ElementAt(i).Key.GetAmmoType(), target.Ammo.ElementAt(i).Value);
-                    target.SetAmmo(ammo2.ElementAt(i).Key, 0);
-                }
-
-                // setting items
-                target.ResetInventory(items1);
-                player.ResetInventory(items2);
-
-                // setting ammo
-                foreach (var ammo in ammo2)
-                {
-                    player.SetAmmo(ammo.Key, ammo.Value);
-                }
-                foreach (var ammo in ammo1)
-                {
-                    target.SetAmmo(ammo.Key, ammo.Value);
-                }
-
-                EventHandlers.SendHint(target, Translations.InventorySwapMessage);
-            }),
-        
-            //14
-            new CoinFlipEffect("Jumpscare :3", player =>
-            {
-                
-            }),
-        };
+                            if (Enum.TryParse<EffectType>(effectStr, out var effectEnum))
+                            {
+                                Log.Debug($"Successfully parsed EffectType: {effectEnum}");
+                                player.EnableEffect(effectEnum, 5, true);
+                                Log.Debug($"Given effect {effectEnum} to {player.DisplayNickname}");
+                            }
+                            else
+                            {
+                                Log.Debug($"Invalid EffectType: {effectStr}");
+                            }
+                        }
+                        else
+                        {
+                            Log.Warn("No valid effects found in the list.");
+                        }
+                    }
+                    else
+                    {
+                        Log.Warn("'effects' parameter not found or invalid format.");
+                    }
+                },
+                _ => player => Log.Debug($"Unknown action: {actionName}")
+            };
+        }
     }
 }

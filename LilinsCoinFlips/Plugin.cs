@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using LilinsCoinFlips.Configs;
 using Exiled.API.Features;
 using Player = Exiled.Events.Handlers.Player;
-using Map = Exiled.Events.Handlers.Map;
+using LilinsCoinFlips.Types;
 
 namespace LilinsCoinFlips
 {
@@ -23,6 +23,19 @@ namespace LilinsCoinFlips
         public override void OnEnabled()
         {
             Instance = this;
+
+            try
+            {
+                EffectLoader.GoodEffects = EffectLoader.LoadEffectsFromYaml(Instance.Config.goodEffectsPath);
+                EffectLoader.BadEffects = EffectLoader.LoadEffectsFromYaml(Instance.Config.badEffectsPath);
+
+                Log.Info("Effekte erfolgreich geladen!");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Fehler beim Laden der Effekte: {ex}");
+            }
+
             RegisterEvents();
             base.OnEnabled();
         }
