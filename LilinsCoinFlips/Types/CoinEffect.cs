@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using CustomPlayerEffects;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
@@ -13,6 +14,7 @@ using Exiled.API.Features.Pickups.Projectiles;
 using Exiled.CustomItems.API.Features;
 using LilinsCoinFlips.Configs;
 using PlayerRoles;
+using PlayerStatsSystem;
 using RemoteAdmin.Communication;
 using UnityEngine;
 using Utf8Json.Internal;
@@ -42,7 +44,7 @@ namespace LilinsCoinFlips.Types
             {
                 "SpawnItems" => player =>
                 {
-                    Log.Debug("Handling 'SpawnItems' action...");
+                    Log.Debug($"Handling '{actionName}' action...");
 
                     if (parameters.TryGetValue("items", out var items) && items is IEnumerable<object> rawList)
                     {
@@ -69,12 +71,12 @@ namespace LilinsCoinFlips.Types
                     }
                     else
                     {
-                        Log.Debug("'Items' parameter not found or invalid format.");
+                        Log.Debug("'items' parameter not found or invalid format.");
                     }
                 },
                 "SpawnCustomItems" => player =>
                 {
-                    Log.Debug("Handling 'SpawnCustomItems' action...");
+                    Log.Debug($"Handling '{actionName}' action...");
 
                     if (parameters.TryGetValue("items", out var items) && items is IEnumerable<object> rawList)
                     {
@@ -106,7 +108,7 @@ namespace LilinsCoinFlips.Types
                 },
                 "TeleportToRoom" => player =>
                 {
-                    Log.Debug("Handling 'TeleportToRoom' action...");
+                    Log.Debug($"Handling '{actionName}' action...");
 
                     if (parameters.TryGetValue("room", out var location) && location is string loc)
                     {
@@ -116,12 +118,12 @@ namespace LilinsCoinFlips.Types
                     }
                     else
                     {
-                        Log.Debug("'Location' parameter not found or invalid format.");
+                        Log.Debug("'location' parameter not found or invalid format.");
                     }
                 },
                 "TeleportRandom" => player =>
                 {
-                    Log.Debug("Handling 'TeleportRandom' action...");
+                    Log.Debug($"Handling '{actionName}' action...");
 
                     if (parameters.TryGetValue("possiblerooms", out var roomListRaw) && roomListRaw is IEnumerable<object> roomList)
                     {
@@ -167,7 +169,7 @@ namespace LilinsCoinFlips.Types
                 },
                 "RandomEffect" => player =>
                 {
-                    Log.Debug("Handling 'RandomEffect' action...");
+                    Log.Debug($"Handling '{actionName}' action...");
 
                     if (parameters.TryGetValue("effects", out var effects) && effects is IEnumerable<object> effectList)
                     {
@@ -204,6 +206,65 @@ namespace LilinsCoinFlips.Types
                     {
                         Log.Warn("'effects' parameter not found or invalid format.");
                     }
+                },
+                "Hurt" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+
+                    if (parameters.TryGetValue("amount", out var ha) && ha is float hurtAmount)
+                    {
+                        Log.Debug($"Hurting player {player.DisplayNickname}");
+                        player.Hurt(hurtAmount);
+                    }
+                    else
+                    {
+                        Log.Debug("'amount' parameter not found or invalid format.");
+                    }
+                },
+                "Handcuff" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+
+                    Log.Debug($"Trying to handcuff {player.DisplayNickname}");
+                    player.Handcuff();
+                },
+                "Warhead" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+
+                    Log.Debug($"Trying to activate warhead...");
+                    if (Warhead.IsDetonated || !Warhead.IsInProgress)
+                    {
+                        Warhead.Start();
+                    }
+                },
+                "SwapPosition" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+
+                    var playerList = Player.List.Where(p => p.IsAlive).ToList();
+                    playerList.Remove(player);
+                    playerList.Remove(playerList.FirstOrDefault(p => p.Role.Type == RoleTypeId.Scp079));
+
+                    var randomPlayer = playerList.RandomItem();
+                    var randomPlayerPos = randomPlayer.Position;
+
+                    randomPlayer.Teleport(player.Position);
+                    player.Teleport(randomPlayerPos);
+                },
+                "Explode" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+
+                    ExplosiveGrenade grenade = (ExplosiveGrenade)Item.Create(ItemType.GrenadeHE);
+                    grenade.FuseTime = 0.1f;
+                    grenade.SpawnActive(player.Position, player);
+                },
+                "SpawnTantrum" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+
+                    player.PlaceTantrum();
                 },
                 _ => player => Log.Debug($"Unknown action: {actionName}")
             };

@@ -25,12 +25,5 @@ namespace LilinsCoinFlips.Configs
             1,
             4
         };
-
-        public int DefaultCoinsAmount { get; set; } = 4;
-
-        public Dictionary<ItemType, int> ItemToReplace { get; set; } = new()
-        {
-            { ItemType.SCP500, 2 }
-        };
     }
 }
