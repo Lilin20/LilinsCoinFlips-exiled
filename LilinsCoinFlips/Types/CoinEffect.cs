@@ -266,6 +266,44 @@ namespace LilinsCoinFlips.Types
 
                     player.PlaceTantrum();
                 },
+                "SpawnRandomItemFromSelection" => player =>
+                {
+                    Log.Debug($"Handling 'SpawnRandomItemFromSelection' action...");
+
+                    if (parameters.TryGetValue("items", out var items) && items is IEnumerable<object> rawList)
+                    {
+                        var itemArray = rawList.ToArray();
+                        Log.Debug($"Found 'items' parameter with {itemArray.Length} items.");
+
+                        if (itemArray.Length > 0)
+                        {
+                            var rnd = new System.Random();
+                            var selected = itemArray[rnd.Next(itemArray.Length)];
+                            var itemStr = selected.ToString();
+
+                            Log.Debug($"Randomly selected item: {itemStr}");
+
+                            if (Enum.TryParse<ItemType>(itemStr, out var itemEnum))
+                            {
+                                Log.Debug($"Successfully parsed ItemType: {itemEnum}");
+                                Pickup.CreateAndSpawn(itemEnum, player.Position, UnityEngine.Quaternion.identity);
+                                Log.Debug($"Spawned {itemEnum} at {player.Position}");
+                            }
+                            else
+                            {
+                                Log.Debug($"Invalid ItemType: {itemStr}");
+                            }
+                        }
+                        else
+                        {
+                            Log.Debug("Item list was empty.");
+                        }
+                    }
+                    else
+                    {
+                        Log.Debug("'items' parameter not found or invalid format.");
+                    }
+                },
                 _ => player => Log.Debug($"Unknown action: {actionName}")
             };
         }
