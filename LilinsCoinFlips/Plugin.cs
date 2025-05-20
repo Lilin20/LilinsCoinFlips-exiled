@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using LilinsCoinFlips.Configs;
 using Exiled.API.Features;
 using Player = Exiled.Events.Handlers.Player;
@@ -29,11 +25,11 @@ namespace LilinsCoinFlips
                 EffectLoader.GoodEffects = EffectLoader.LoadEffectsFromYaml(Instance.Config.goodEffectsPath);
                 EffectLoader.BadEffects = EffectLoader.LoadEffectsFromYaml(Instance.Config.badEffectsPath);
 
-                Log.Info("Effekte erfolgreich geladen!");
+                Log.Debug("Effects loaded successfully!");
             }
             catch (Exception ex)
             {
-                Log.Error($"Fehler beim Laden der Effekte: {ex}");
+                Log.Error($"Error while loading effects: {ex}");
             }
 
             RegisterEvents();

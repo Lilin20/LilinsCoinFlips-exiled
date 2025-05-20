@@ -15,9 +15,9 @@ namespace LilinsCoinFlips
     public class EventHandlers
     {
         private static Config Config => Plugin.Instance.Config;
-        private static Configs.Translations Translations => Plugin.Instance.Translation;
         private readonly System.Random _rd = new();
         public static Dictionary<ushort, int> CoinUses = new();
+        private static Configs.Translations Translations => Plugin.Instance.Translation;
 
         private readonly Dictionary<string, DateTime> _cooldownDict = new();
 
@@ -38,7 +38,7 @@ namespace LilinsCoinFlips
             if (onCd)
             {
                 ev.IsAllowed = false;
-                SendHint(ev.Player, Translations.TossOnCoodownMessage);
+                SendHint(ev.Player, Translations.TossOnCooldownMessage);
                 Log.Debug($"{ev.Player.Nickname} tried to throw a coin on cooldown.");
                 return;
             }
