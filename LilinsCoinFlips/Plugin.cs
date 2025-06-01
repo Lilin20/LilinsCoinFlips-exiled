@@ -8,8 +8,8 @@ namespace LilinsCoinFlips
 {
     public class Plugin : Plugin<Config, Configs.Translations>
     {
-        public override Version RequiredExiledVersion => new(9, 5, 0);
-        public override Version Version => new(1, 0, 0);
+        public override Version RequiredExiledVersion => new(9, 6, 0);
+        public override Version Version => new(0, 1, 0);
         public override string Author => "Lilin";
         public override string Name => "LilinsCoinFlips";
 

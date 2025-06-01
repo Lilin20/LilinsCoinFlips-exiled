@@ -1,25 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
 using System.Linq;
-using CustomPlayerEffects;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
-using Exiled.API.Features.Doors;
 using Exiled.API.Features.Items;
 using Exiled.API.Features.Pickups;
-using Exiled.API.Features.Pickups.Projectiles;
 using Exiled.CustomItems.API.Features;
-using LilinsCoinFlips.Configs;
+using Exiled.Events.EventArgs.Scp939;
 using PlayerRoles;
-using PlayerStatsSystem;
-using RemoteAdmin.Communication;
-using UnityEngine;
-using Utf8Json.Internal;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace LilinsCoinFlips.Types
 {
@@ -110,6 +99,12 @@ namespace LilinsCoinFlips.Types
                 {
                     Log.Debug($"Handling '{actionName}' action...");
 
+                    if (Warhead.IsDetonated == true)
+                    {
+                        player.ShowHint("The warhead detonated. Unable to teleport.");
+                        return;
+                    }
+
                     if (parameters.TryGetValue("room", out var location) && location is string loc)
                     {
                         Log.Debug($"Teleporting player to location: {loc}");
@@ -137,6 +132,12 @@ namespace LilinsCoinFlips.Types
                         }
 
                         var randomRoom = roomArray[random.Next(roomArray.Length)];
+
+                        if (Warhead.IsDetonated == true)
+                        {
+                            player.ShowHint("The warhead detonated. No teleport target available.");
+                            return;
+                        }
 
                         if (randomRoom != null)
                         {
@@ -302,6 +303,56 @@ namespace LilinsCoinFlips.Types
                     else
                     {
                         Log.Debug("'items' parameter not found or invalid format.");
+                    }
+                },
+                "StartWarhead" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+
+                    Warhead.Start();
+                },
+                "TeleportToSCP" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+
+                    Player scpPlayer = Player.List.Where(p => p.Role.Team == Team.SCPs && p.Role != RoleTypeId.Scp079).GetRandomValue();
+
+                    if (scpPlayer != null)
+                    {
+                        player.Teleport(scpPlayer);
+                    }
+                    else
+                    {
+                        player.ShowHint(Plugin.Instance.Translation.NoSCPToTeleportToMessage, duration: 5f);
+                    }
+                },
+                "ChangeRole" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+                    
+                    if (parameters.TryGetValue("roles", out var roleListRaw) && roleListRaw is IEnumerable<object> roleList)
+                    {
+                        var roles = roleList
+                            .Select(role => role.ToString())
+                            .Where(roleStr => Enum.TryParse<RoleTypeId>(roleStr, out _))
+                            .Select(roleStr => (RoleTypeId)Enum.Parse(typeof(RoleTypeId), roleStr))
+                            .ToList();
+
+                        if (roles.Count == 0)
+                        {
+                            Log.Debug("No valid roles found in parameterr list.");
+                            return;
+                        }
+
+                        var random = new System.Random();
+                        var selectedRole = roles[random.Next(roles.Count)];
+
+                        Log.Debug($"Assigning role {selectedRole} to player.");
+                        player.Role.Set(selectedRole);
+                    }
+                    else
+                    {
+                        Log.Debug("'roles' parameter not found or invalid format.");
                     }
                 },
                 _ => player => Log.Debug($"Unknown action: {actionName}")

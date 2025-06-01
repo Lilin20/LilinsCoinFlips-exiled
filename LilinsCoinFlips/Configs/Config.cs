@@ -2,7 +2,6 @@
 using System.ComponentModel;
 using Exiled.API.Enums;
 using Exiled.API.Interfaces;
-using PlayerRoles;
 
 namespace LilinsCoinFlips.Configs
 {

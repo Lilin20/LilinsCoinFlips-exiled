@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Exiled.API.Interfaces;
 
 namespace LilinsCoinFlips.Configs
@@ -23,5 +19,8 @@ namespace LilinsCoinFlips.Configs
         };
         [Description("Messages that will be send when the coin is on cooldown.")]
         public string TossOnCooldownMessage { get; set; } = "You can't throw the coin yet.";
+
+        [Description("Info for the player if no SCP exists to teleport to.")]
+        public string NoSCPToTeleportToMessage { get; set; } = "No SCP was found to teleport to.";
     }
 }
