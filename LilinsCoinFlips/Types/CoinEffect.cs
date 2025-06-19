@@ -8,6 +8,7 @@ using Exiled.API.Features.Items;
 using Exiled.API.Features.Pickups;
 using Exiled.CustomItems.API.Features;
 using Exiled.Events.EventArgs.Scp939;
+using InventorySystem.Items.Usables.Scp330;
 using PlayerRoles;
 
 namespace LilinsCoinFlips.Types
@@ -17,6 +18,7 @@ namespace LilinsCoinFlips.Types
         public Action<Player> Execute { get; set; }
         public string Message { get; set; }
         public int Chance { get; set; }
+        private static readonly System.Random Random = new System.Random();
 
         public CoinFlipEffect(string message, Action<Player> execute, int chance)
         {
@@ -122,7 +124,6 @@ namespace LilinsCoinFlips.Types
 
                     if (parameters.TryGetValue("possiblerooms", out var roomListRaw) && roomListRaw is IEnumerable<object> roomList)
                     {
-                        var random = new System.Random();
                         var roomArray = roomList.ToArray();
 
                         if (roomArray.Length == 0)
@@ -131,7 +132,7 @@ namespace LilinsCoinFlips.Types
                             return;
                         }
 
-                        var randomRoom = roomArray[random.Next(roomArray.Length)];
+                        var randomRoom = roomArray[Random.Next(roomArray.Length)];
 
                         if (Warhead.IsDetonated == true)
                         {
@@ -176,22 +177,33 @@ namespace LilinsCoinFlips.Types
                     {
                         Log.Debug($"Found 'effects' parameter with {effectList.Count()} items.");
 
-                        // Zufälligen Effekt aus der Liste auswählen
-                        var random = new System.Random();
-                        var randomEffect = effectList.ElementAtOrDefault(random.Next(effectList.Count()));
+                        var randomEffect = effectList.ElementAtOrDefault(Random.Next(effectList.Count()));
 
                         if (randomEffect != null)
                         {
                             var effectStr = randomEffect.ToString();
                             Log.Debug($"Attempting to apply effect: {effectStr}");
 
-                            Log.Debug($"Player details: {player.ToString()}");
-
                             if (Enum.TryParse<EffectType>(effectStr, out var effectEnum))
                             {
-                                Log.Debug($"Successfully parsed EffectType: {effectEnum}");
-                                player.EnableEffect(effectEnum, 5, true);
-                                Log.Debug($"Given effect {effectEnum} to {player.DisplayNickname}");
+                                float duration = 5f;
+                                byte intensity = 1;
+
+                                if (parameters.TryGetValue("duration", out var durObj))
+                                {
+                                    try { duration = Convert.ToSingle(durObj); }
+                                    catch (Exception e) { Log.Warn($"Invalid duration format: {durObj} ({e.Message})"); }
+                                }
+
+                                if (parameters.TryGetValue("intensity", out var intObj))
+                                {
+                                    try { intensity = Convert.ToByte(intObj); }
+                                    catch (Exception e) { Log.Warn($"Invalid intensity format: {intObj} ({e.Message})"); }
+                                }
+
+                                Log.Debug($"Applying effect {effectEnum} with duration {duration}s and intensity {intensity}");
+
+                                player.EnableEffect(effectEnum, intensity, duration, true);
                             }
                             else
                             {
@@ -212,10 +224,18 @@ namespace LilinsCoinFlips.Types
                 {
                     Log.Debug($"Handling '{actionName}' action...");
 
-                    if (parameters.TryGetValue("amount", out var ha) && ha is float hurtAmount)
+                    if (parameters.TryGetValue("amount", out var ha))
                     {
-                        Log.Debug($"Hurting player {player.DisplayNickname}");
-                        player.Hurt(hurtAmount);
+                        try
+                        {
+                            int hurtAmount = Convert.ToInt32(ha);
+                            Log.Debug($"Hurting player {player.DisplayNickname} by {hurtAmount}");
+                            player.Hurt(hurtAmount);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Debug($"Failed to convert 'amount' to int: {ha} - {ex.Message}");
+                        }
                     }
                     else
                     {
@@ -278,8 +298,7 @@ namespace LilinsCoinFlips.Types
 
                         if (itemArray.Length > 0)
                         {
-                            var rnd = new System.Random();
-                            var selected = itemArray[rnd.Next(itemArray.Length)];
+                            var selected = itemArray[Random.Next(itemArray.Length)];
                             var itemStr = selected.ToString();
 
                             Log.Debug($"Randomly selected item: {itemStr}");
@@ -329,7 +348,7 @@ namespace LilinsCoinFlips.Types
                 "ChangeRole" => player =>
                 {
                     Log.Debug($"Handling '{actionName}' action...");
-                    
+
                     if (parameters.TryGetValue("roles", out var roleListRaw) && roleListRaw is IEnumerable<object> roleList)
                     {
                         var roles = roleList
@@ -344,17 +363,74 @@ namespace LilinsCoinFlips.Types
                             return;
                         }
 
-                        var random = new System.Random();
-                        var selectedRole = roles[random.Next(roles.Count)];
+                        var selectedRole = roles[Random.Next(roles.Count)];
 
                         Log.Debug($"Assigning role {selectedRole} to player.");
-                        player.Role.Set(selectedRole);
+                        player.Role.Set(selectedRole, RoleSpawnFlags.None);
                     }
                     else
                     {
                         Log.Debug("'roles' parameter not found or invalid format.");
                     }
                 },
+                "InstantFlashbang" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+
+                    FlashGrenade grenade = (FlashGrenade)Item.Create(ItemType.GrenadeFlash);
+                    grenade.FuseTime = 1f;
+                    grenade.SpawnActive(player.Position, player);
+                },
+                "GiveCandy" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+
+                    if (parameters.TryGetValue("validcandies", out var candyListRaw))
+                    {
+                        List<string> candyStrings = null;
+
+                        if (candyListRaw is IEnumerable<object> objectList)
+                        {
+                            candyStrings = objectList.Select(c => c.ToString()).ToList();
+                        }
+                        else if (candyListRaw is IEnumerable<string> stringList)
+                        {
+                            candyStrings = stringList.ToList();
+                        }
+
+                        if (candyStrings == null || candyStrings.Count == 0)
+                        {
+                            Log.Debug("Candy list is empty or null.");
+                            return;
+                        }
+
+                        var randomCandyStr = candyStrings.GetRandomValue();
+                        Log.Debug($"Randomly selected candy string: {randomCandyStr}");
+
+                        if (Enum.TryParse<CandyKindID>(randomCandyStr, true, out var randomCandy))
+                        {
+                            Log.Debug($"Parsed CandyKindID: {randomCandy}");
+
+                            if (player.TryAddCandy(randomCandy))
+                            {
+                                Log.Debug($"Successfully gave {randomCandy} to {player.DisplayNickname}");
+                            }
+                            else
+                            {
+                                Log.Debug($"Failed to give candy to {player.DisplayNickname}");
+                            }
+                        }
+                        else
+                        {
+                            Log.Debug($"Invalid CandyKindID: {randomCandyStr}");
+                        }
+                    }
+                    else
+                    {
+                        Log.Debug("'validcandies' parameter not found.");
+                    }
+                }
+                ,
                 _ => player => Log.Debug($"Unknown action: {actionName}")
             };
         }
