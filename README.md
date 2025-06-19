@@ -2,7 +2,7 @@
 
 A customizable **coin flip effect system** for EXILED beta, letting you define good and bad outcomes via YAML config files — no recompilation required!
 
-Exiled Version: 9.6.0-beta8
+Exiled Version: 9.6.1
 
 This plugin is inspired by and partially based on the structure and concept of BetterCoinflips by miki_hero. It extends and customizes the original idea to introduce new features and a more flexible system.
 ---
