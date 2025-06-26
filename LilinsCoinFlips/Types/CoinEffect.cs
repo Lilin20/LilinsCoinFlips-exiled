@@ -65,6 +65,44 @@ namespace LilinsCoinFlips.Types
                         Log.Debug("'items' parameter not found or invalid format.");
                     }
                 },
+                "SpawnRandomItem" => player =>
+                {
+                    Log.Debug($"Handling '{actionName}' action...");
+
+                    if (parameters.TryGetValue("items", out var items) && items is IEnumerable<object> rawList)
+                    {
+                        var itemList = rawList.Select(i => i.ToString()).ToList();
+                        Log.Debug($"Found 'items' parameter with {itemList.Count} items.");
+
+                        if (itemList.Count > 0)
+                        {
+                            var random = new System.Random();
+                            var randomItemStr = itemList[random.Next(itemList.Count)];
+                            Log.Debug($"Selected random item: {randomItemStr}");
+
+                            Log.Debug($"Player details: {player.ToString()}");
+
+                            if (Enum.TryParse<ItemType>(randomItemStr, out var itemEnum))
+                            {
+                                Log.Debug($"Successfully parsed ItemType: {itemEnum}");
+                                Pickup.CreateAndSpawn(itemEnum, player.Position, UnityEngine.Quaternion.identity);
+                                Log.Debug($"Spawned {itemEnum} at {player.Position}");
+                            }
+                            else
+                            {
+                                Log.Debug($"Invalid ItemType: {randomItemStr}");
+                            }
+                        }
+                        else
+                        {
+                            Log.Debug("Item list is empty.");
+                        }
+                    }
+                    else
+                    {
+                        Log.Debug("'items' parameter not found or invalid format.");
+                    }
+                },
                 "SpawnCustomItems" => player =>
                 {
                     Log.Debug($"Handling '{actionName}' action...");
