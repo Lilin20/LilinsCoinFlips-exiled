@@ -29,24 +29,9 @@ bad_effects_path: 'your/path/to/bad_effects.yaml'
 ...
 ```
 
-## 📁 YAML Configuration
+## 🔑 YAML Configuration
 
-### 🧾 Format Example
-
-```yaml
-- message: "You've received healing items!"
-  chance: 20
-  actions:
-    - type: "SpawnItems"
-      parameters:
-        items:
-          - "Medkit"
-          - "Painkillers"
-```
-
----
-
-## 🔑 YAML Fields
+Please check the wiki here on Github for more information!!!
 
 | Field       | Type               | Description                                               |
 |-------------|--------------------|-----------------------------------------------------------|
@@ -55,80 +40,6 @@ bad_effects_path: 'your/path/to/bad_effects.yaml'
 | `actions`   | `list<object>`     | List of actions to run sequentially                       |
 | `type`      | `string`           | Action name (see below)                                   |
 | `parameters`| `dictionary`       | Parameters for the specific action                        |
-
----
-
-## ⚙️ Supported Actions
-
-### 🔹 `SpawnItems`
-
-Spawns one or more items at the player's location.
-
-```yaml
-- type: "SpawnItems"
-  parameters:
-    items:
-      - "Medkit"
-      - "Painkillers"
-```
-
----
-
-### 🔹 `SpawnCustomItems`
-
-Spawns one or more custom items at the player's location.
-
-```yaml
-- type: "SpawnCustomItems"
-  parameters:
-    items:
-      - 100
-      - 200
-```
-
----
-
-### 🔹 `TeleportToRoom`
-
-Teleports the player to a specific room.
-
-```yaml
-- type: "TeleportToRoom"
-  parameters:
-    room: "LczArmory"
-```
-
----
-
-### 🔹 `TeleportRandom`
-
-Teleports the player to a random room from a list.
-
-```yaml
-- type: "TeleportRandom"
-  parameters:
-    room:
-      - "LCZ_ClassDSpawn"
-      - "HCZ_Testroom"
-```
-
----
-
-### 🔹 `RandomEffect`
-
-Applies one random status effect from a list.
-
-```yaml
-- type: "RandomEffect"
-  parameters:
-    effects:
-      - "Asphyxiated"
-      - "Burned"
-      - "Flashed"
-      - "Bleeding"
-```
-
-✅ Supported values: Any valid EffectType
 
 ---
 
